@@ -1,19 +1,48 @@
-import React, {useContext, useState} from "react";
+import React, {useContext, useState, useEffect} from "react";
 import { AreaChart, Area, XAxis, YAxis } from "recharts";
-import { mockHistoricalData } from "../constants/mock";
-import { convertUnixTimestampToDate } from "../helpers/date-helper";
+import { convertUnixTimestampToDate, convertDateToUnixTimestamp, createDate } from "../helpers/date-helper";
 import { ResponsiveContainer, Tooltip } from "recharts";
 import Card from "./Card";
 import ChartFilter from "./ChartFilter";
 import { chartConfig } from "../constants/config.js";
 import ThemeContext from "../context/ThemeContext";
+import StockContext from "../context/StockContext.js";
 
 const Chart = () => {
-    const [data, setData] = useState(mockHistoricalData);
+    const [data, setData] = useState([]);
     const [filter, setFilter] = useState("1W");
 
-    const {darkMode} = useContext(ThemeContext);
-    const formatData = () => {
+    const { darkMode } = useContext(ThemeContext);
+
+    const { stockSymbol } = useContext(StockContext);
+
+    useEffect(() => {
+        const getDateRange = () => {
+            const {days, weeks, months, years} = chartConfig[filter];
+
+            const endDate = new Date();
+            const startDate = createDate(endDate, -days, -weeks, -months, -years);
+
+            const startTimestampUnix = convertDateToUnixTimestamp(startDate);
+            const endTimestampUnix = convertDateToUnixTimestamp(endDate);
+
+            return {startTimestampUnix, endTimestampUnix};
+        };
+
+        const updateChartData = async () => {
+            try {
+                const { startTimestampUnix, endTimestampUnix } = getDateRange();
+                const resolution = chartConfig[filter].resolution;
+            }
+            catch (error) {
+                setData([]);
+                console.log(error);
+            }
+        };
+        updateChartData();
+    }, [stockSymbol, filter]);
+
+    const formatData = (data) => {
         return data.c.map((item, index) => {
             return {
                 value: item.toFixed(2),
@@ -40,7 +69,7 @@ const Chart = () => {
                 })}
             </ul>
             <ResponsiveContainer>
-                <AreaChart data={formatData(data)}>
+                <AreaChart data={data}>
                     <defs>
                         <linearGradient id="chartColor" x1="0" y1="0" x2="0" y2="1">
                             <stop 
